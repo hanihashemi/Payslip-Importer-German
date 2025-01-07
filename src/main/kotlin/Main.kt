@@ -1,9 +1,9 @@
 package io.github.hanihashemi.payslipimporter
+
 import com.itextpdf.kernel.pdf.PdfDocument
 import com.itextpdf.kernel.pdf.PdfReader
 import com.itextpdf.kernel.pdf.canvas.parser.PdfTextExtractor
 import java.io.File
-import java.util.Scanner
 
 fun main() {
     // Get the directory path from the user
@@ -22,15 +22,18 @@ fun main() {
 
     // Define the fields you want to extract
     val fieldsToExtract = listOf(
-        "Grundgehalt",
-        "Gesamt-Brutto",
-        "Steuer/Sozialversicherung",
-        "Netto-Verdienst",
-        "Steuerrechtliche Abzüge",
-        "SV-rechtliche Abzüge",
-        "Direktversicherung",
-        "Gesamtbeitrag zur PV",
-        "Gesamtbeitrag zur KV"
+        MyField("Grundgehalt"),
+        MyField(key = "Steuer/Sozialversicherung", name = "Gesamt-Brutto", isValueNextLine = true),
+        MyField("Steuerrechtliche Abzüge", isValueNextLine = true),
+        MyField("SV-rechtliche Abzüge", isValueNextLine = true),
+        MyField(
+            key = "Verdienstbescheinigung Netto-Bezüge/Netto-Abzüge",
+            name = "Netto-Verdienst",
+            isValueNextLine = true
+        ),
+        MyField("Direktversicherung"),
+        MyField("Gesamtbeitrag zur PV"),
+        MyField("Gesamtbeitrag zur KV")
     )
 
     // Process each PDF file
@@ -46,7 +49,7 @@ fun main() {
     }
 }
 
-fun extractFieldsFromPDF(pdfFile: File, fields: List<String>): Map<String, String> {
+fun extractFieldsFromPDF(pdfFile: File, fields: List<MyField>): Map<String, String> {
     val extractedData = mutableMapOf<String, String>()
 
     try {
@@ -61,15 +64,31 @@ fun extractFieldsFromPDF(pdfFile: File, fields: List<String>): Map<String, Strin
 
             // Print PDF text for debugging
             println("Extracted text from ${pdfFile.name}:")
-            println(pdfText.toString())
+//            println(pdfText.toString())
 
-            // Extract each field based on its key or pattern
+            val lines = pdfText.lines()
             fields.forEach { field ->
-                val regex = Regex("\\b$field\\b.*?([\\d.,]+)") // Match field name followed by the value
-                val match = regex.find(pdfText.toString())
-                val value = match?.groups?.get(1)?.value ?: "Not Found"
-                extractedData[field] = value
+                if (field.isValueNextLine) {
+                    val lineIndex = lines.indexOfFirst { it.contains(field.key) }
+                    if (lineIndex != -1 && lineIndex + 1 < lines.size) {
+                        val valueLine = lines[lineIndex + 1].trim()
+                        val value = valueLine.split(Regex("\\s+")).lastOrNull() ?: "Not Found"
+                        extractedData[field.name] = value
+                    } else {
+                        extractedData[field.name] = "Not Found"
+                    }
+                } else {
+                    val regex = when (field.key) {
+//                        "Gesamt-Brutto" -> Regex("\\b${field.key}\\b.*?\\n.*?Steuer/Sozialversicherung\\s+([\\d.,]+)")
+                        "Steuerrechtliche Abzüge" -> Regex("\\b${field.key}\\b.*?\\n.*?([\\d.,]+)$")
+                        else -> Regex("\\b${field.key}\\b.*?([\\d.,]+)") // Default matching
+                    }
+                    val match = regex.find(pdfText.toString())
+                    val value = match?.groups?.get(1)?.value ?: "Not Found"
+                    extractedData[field.name] = value
+                }
             }
+
         }
     } catch (e: Exception) {
         println("Error reading PDF ${pdfFile.name}: ${e.message}")
@@ -78,3 +97,8 @@ fun extractFieldsFromPDF(pdfFile: File, fields: List<String>): Map<String, Strin
     return extractedData
 }
 
+data class MyField(
+    val key: String,
+    val name: String = key,
+    val isValueNextLine: Boolean = false,
+)
