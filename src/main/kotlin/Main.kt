@@ -9,6 +9,7 @@ import java.io.File
 
 fun main() {
     val directoryPath = "/Users/h.hashemifar/Downloads/Salary"
+    val outputFile = File("/Users/h.hashemifar/Downloads/PayslipData.xlsx")
 
     // Get all PDF files in the directory, sorted by name and last modified date
     val pdfFiles = File(directoryPath).listFiles { file -> file.extension.equals("pdf", ignoreCase = true) }
@@ -29,9 +30,9 @@ fun main() {
             name = "Netto-Verdienst",
             isValueNextLine = true
         ),
-        MyField("Direktversicherung"),
-        MyField("Gesamtbeitrag zur PV"),
-        MyField("Gesamtbeitrag zur KV")
+        MyField("Direktversicherung", isMinus = true),
+        MyField("Gesamtbeitrag zur PV", isMinus = true),
+        MyField("Gesamtbeitrag zur KV", isMinus = true)
     )
 
     // Create Excel workbook
@@ -61,7 +62,6 @@ fun main() {
     }
 
     // Save Excel file
-    val outputFile = File("/Users/h.hashemifar/Downloads/PayslipData.xlsx")
     workbook.use { it.write(outputFile.outputStream()) }
     println("Data written to ${outputFile.absolutePath}")
 }
@@ -86,7 +86,7 @@ fun extractFieldsFromPDF(pdfFile: File, fields: List<MyField>): Map<String, Stri
                     if (lineIndex != -1 && lineIndex + 1 < lines.size) {
                         val valueLine = lines[lineIndex + 1].trim()
                         val value = valueLine.split(Regex("\\s+")).lastOrNull() ?: "Not Found"
-                        extractedData[field.name] = value
+                        extractedData[field.name] = if (field.isMinus) "-$value" else value
                     } else {
                         extractedData[field.name] = "Not Found"
                     }
@@ -94,7 +94,7 @@ fun extractFieldsFromPDF(pdfFile: File, fields: List<MyField>): Map<String, Stri
                     val regex = Regex("\\b${field.key}\\b.*?(-?[\\d.,]+)")
                     val match = regex.find(pdfText.toString())
                     val value = match?.groups?.get(1)?.value ?: "Not Found"
-                    extractedData[field.name] = value
+                    extractedData[field.name] = if (field.isMinus) "-$value" else value
                 }
             }
 
@@ -110,4 +110,5 @@ data class MyField(
     val key: String,
     val name: String = key,
     val isValueNextLine: Boolean = false,
+    val isMinus: Boolean = false,
 )
