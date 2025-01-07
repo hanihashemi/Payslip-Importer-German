@@ -3,13 +3,11 @@ package io.github.hanihashemi.payslipimporter
 import com.itextpdf.kernel.pdf.PdfDocument
 import com.itextpdf.kernel.pdf.PdfReader
 import com.itextpdf.kernel.pdf.canvas.parser.PdfTextExtractor
+import org.apache.poi.ss.usermodel.Workbook
+import org.apache.poi.xssf.usermodel.XSSFWorkbook
 import java.io.File
 
 fun main() {
-    // Get the directory path from the user
-//    val scanner = Scanner(System.`in`)
-//    println("Enter the path to the directory containing your payslip PDF files:")
-//    val directoryPath = scanner.nextLine()
     val directoryPath = "/Users/h.hashemifar/Downloads/Salary"
 
     // Get all PDF files in the directory, sorted by name and last modified date
@@ -36,17 +34,33 @@ fun main() {
         MyField("Gesamtbeitrag zur KV")
     )
 
-    // Process each PDF file
-    pdfFiles.forEach { pdfFile ->
-        println("Processing file: ${pdfFile.name}")
-        val extractedData = extractFieldsFromPDF(pdfFile, fieldsToExtract)
+    // Create Excel workbook
+    val workbook: Workbook = XSSFWorkbook()
+    val sheet = workbook.createSheet("Payslip Data")
 
-        // Print the extracted data
-        extractedData.forEach { (field, value) ->
-            println("$field: $value")
-        }
-        println("-------------------------------------")
+    // Add header row
+    val headerRow = sheet.createRow(0)
+    headerRow.createCell(0).setCellValue("Field Name")
+    pdfFiles.forEachIndexed { index, pdfFile ->
+        headerRow.createCell(index + 1).setCellValue(pdfFile.name)
     }
+
+    // Add rows for each field
+    fieldsToExtract.forEachIndexed { fieldIndex, field ->
+        val row = sheet.createRow(fieldIndex + 1)
+        row.createCell(0).setCellValue(field.name)
+
+        pdfFiles.forEachIndexed { fileIndex, pdfFile ->
+            val extractedData = extractFieldsFromPDF(pdfFile, fieldsToExtract)
+            val value = extractedData[field.name] ?: "Not Found"
+            row.createCell(fileIndex + 1).setCellValue(value)
+        }
+    }
+
+    // Save Excel file
+    val outputFile = File("/Users/h.hashemifar/Downloads/PayslipData.xlsx")
+    workbook.use { it.write(outputFile.outputStream()) }
+    println("Data written to ${outputFile.absolutePath}")
 }
 
 fun extractFieldsFromPDF(pdfFile: File, fields: List<MyField>): Map<String, String> {
@@ -64,7 +78,6 @@ fun extractFieldsFromPDF(pdfFile: File, fields: List<MyField>): Map<String, Stri
 
             // Print PDF text for debugging
             println("Extracted text from ${pdfFile.name}:")
-//            println(pdfText.toString())
 
             val lines = pdfText.lines()
             fields.forEach { field ->
@@ -79,7 +92,6 @@ fun extractFieldsFromPDF(pdfFile: File, fields: List<MyField>): Map<String, Stri
                     }
                 } else {
                     val regex = when (field.key) {
-//                        "Gesamt-Brutto" -> Regex("\\b${field.key}\\b.*?\\n.*?Steuer/Sozialversicherung\\s+([\\d.,]+)")
                         "Steuerrechtliche Abzüge" -> Regex("\\b${field.key}\\b.*?\\n.*?([\\d.,]+)$")
                         else -> Regex("\\b${field.key}\\b.*?([\\d.,]+)") // Default matching
                     }
