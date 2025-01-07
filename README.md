@@ -1,5 +1,8 @@
 # Payslip Importer
 
+<img src="./image.webp" alt="Payslip Importer" width="512"/>
+
+
 This repository contains a Kotlin-based tool designed to extract specific data fields from multiple German PDF payslip files and compile the results into an organized Excel spreadsheet. While it is tailored for German payslips, you can modify it for your own use case by adjusting the fields and patterns.
 
 The tool uses the following libraries:
@@ -31,8 +34,8 @@ The tool uses the following libraries:
 
 ```kotlin
 dependencies {
-    implementation("com.itextpdf:itext7-core:7.2.5")
-    implementation("org.apache.poi:poi-ooxml:5.2.3")
+   implementation("com.itextpdf:itext7-core:7.2.5")
+   implementation("org.apache.poi:poi-ooxml:5.2.3")
 }
 ```
 
@@ -49,10 +52,10 @@ Fields to extract are defined in the `fieldsToExtract` list. Each field is repre
 
 ```kotlin
 data class MyField(
-    val key: String,        // The text to search for in the PDF
-    val name: String = key, // The name to display in the Excel file
-    val isValueNextLine: Boolean = false, // If the value appears in the next line after the key
-    val isMinus: Boolean = false // If the value should be treated as a negative
+   val key: String,        // The text to search for in the PDF
+   val name: String = key, // The name to display in the Excel file
+   val isValueNextLine: Boolean = false, // If the value appears in the next line after the key
+   val isMinus: Boolean = false // If the value should be treated as a negative
 )
 ```
 
@@ -60,13 +63,13 @@ data class MyField(
 
 ```kotlin
 val fieldsToExtract = listOf(
-    MyField("Grundgehalt"),
-    MyField(key = "Steuer/Sozialversicherung", name = "Gesamt-Brutto", isValueNextLine = true),
-    MyField("Steuerrechtliche Abzüge", isValueNextLine = true),
-    MyField("SV-rechtliche Abzüge", isValueNextLine = true),
-    MyField("Direktversicherung", isMinus = true),
-    MyField("Gesamtbeitrag zur PV", isMinus = true),
-    MyField("Gesamtbeitrag zur KV", isMinus = true)
+   MyField("Grundgehalt"),
+   MyField(key = "Steuer/Sozialversicherung", name = "Gesamt-Brutto", isValueNextLine = true),
+   MyField("Steuerrechtliche Abzüge", isValueNextLine = true),
+   MyField("SV-rechtliche Abzüge", isValueNextLine = true),
+   MyField("Direktversicherung", isMinus = true),
+   MyField("Gesamtbeitrag zur PV", isMinus = true),
+   MyField("Gesamtbeitrag zur KV", isMinus = true)
 )
 ```
 
