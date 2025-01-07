@@ -54,6 +54,9 @@ fun main() {
             val extractedData = extractFieldsFromPDF(pdfFile, fieldsToExtract)
             val value = extractedData[field.name] ?: "Not Found"
             row.createCell(fileIndex + 1).setCellValue(value)
+            println("File: ${pdfFile.name}")
+            extractedData.entries.forEach { println("${it.key}: ${it.value}") }
+            println("=====================================")
         }
     }
 
@@ -76,9 +79,6 @@ fun extractFieldsFromPDF(pdfFile: File, fields: List<MyField>): Map<String, Stri
                 pdfText.append(PdfTextExtractor.getTextFromPage(document.getPage(i)))
             }
 
-            // Print PDF text for debugging
-            println("Extracted text from ${pdfFile.name}:")
-
             val lines = pdfText.lines()
             fields.forEach { field ->
                 if (field.isValueNextLine) {
@@ -91,10 +91,7 @@ fun extractFieldsFromPDF(pdfFile: File, fields: List<MyField>): Map<String, Stri
                         extractedData[field.name] = "Not Found"
                     }
                 } else {
-                    val regex = when (field.key) {
-                        "Steuerrechtliche Abzüge" -> Regex("\\b${field.key}\\b.*?\\n.*?([\\d.,]+)$")
-                        else -> Regex("\\b${field.key}\\b.*?([\\d.,]+)") // Default matching
-                    }
+                    val regex = Regex("\\b${field.key}\\b.*?(-?[\\d.,]+)")
                     val match = regex.find(pdfText.toString())
                     val value = match?.groups?.get(1)?.value ?: "Not Found"
                     extractedData[field.name] = value
