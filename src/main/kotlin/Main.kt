@@ -1,6 +1,7 @@
 package io.github.hanihashemi.payslipimporter
-import org.apache.pdfbox.pdmodel.PDDocument
-import org.apache.pdfbox.text.PDFTextStripper
+import com.itextpdf.kernel.pdf.PdfDocument
+import com.itextpdf.kernel.pdf.PdfReader
+import com.itextpdf.kernel.pdf.canvas.parser.PdfTextExtractor
 import java.io.File
 import java.util.Scanner
 
@@ -23,6 +24,7 @@ fun main() {
     val fieldsToExtract = listOf(
         "Grundgehalt",
         "Gesamt-Brutto",
+        "Steuer/Sozialversicherung",
         "Netto-Verdienst",
         "Steuerrechtliche Abzüge",
         "SV-rechtliche Abzüge",
@@ -48,15 +50,23 @@ fun extractFieldsFromPDF(pdfFile: File, fields: List<String>): Map<String, Strin
     val extractedData = mutableMapOf<String, String>()
 
     try {
-        // Load the PDF document
-        PDDocument.load(pdfFile).use { document ->
-            // Extract text from the PDF
-            val pdfText = PDFTextStripper().getText(document)
+        // Open the PDF document
+        PdfDocument(PdfReader(pdfFile)).use { document ->
+            val pdfText = StringBuilder()
+
+            // Extract text from each page
+            for (i in 1..document.numberOfPages) {
+                pdfText.append(PdfTextExtractor.getTextFromPage(document.getPage(i)))
+            }
+
+            // Print PDF text for debugging
+            println("Extracted text from ${pdfFile.name}:")
+            println(pdfText.toString())
 
             // Extract each field based on its key or pattern
             fields.forEach { field ->
-                val regex = Regex("$field\\s+([\\d.,]+)")
-                val match = regex.find(pdfText)
+                val regex = Regex("\\b$field\\b.*?([\\d.,]+)") // Match field name followed by the value
+                val match = regex.find(pdfText.toString())
                 val value = match?.groups?.get(1)?.value ?: "Not Found"
                 extractedData[field] = value
             }
@@ -67,3 +77,4 @@ fun extractFieldsFromPDF(pdfFile: File, fields: List<String>): Map<String, Strin
 
     return extractedData
 }
+

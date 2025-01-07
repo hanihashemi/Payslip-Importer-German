@@ -11,7 +11,7 @@ repositories {
 
 dependencies {
     testImplementation(kotlin("test"))
-    implementation("org.apache.pdfbox:pdfbox:2.0.28")
+    implementation("com.itextpdf:itext7-core:7.2.5")
 }
 
 tasks.test {
